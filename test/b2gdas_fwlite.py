@@ -5,12 +5,14 @@ from array import array
 from DataFormats.FWLite import Events, Handle
 # Use the VID framework for the electron ID. Tight ID without the PF isolation cut. 
 from RecoEgamma.ElectronIdentification.VIDElectronSelector import VIDElectronSelector
+#from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff import cutBasedElectronID_Fall17_94X_V1_tight
 from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff import cutBasedElectronID_Spring15_25ns_V1_standalone_tight
-from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_nonTrig_V1_cff import mvaEleID_Spring15_25ns_nonTrig_V1_wp80
+from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff import mvaEleID_Fall17_V1_wp80
 
 ############################################
 # Jet Energy Corrections / Resolution tools
 
+#TODO
 jet_energy_resolution = [ # Values from https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
     (0.0, 0.8, 1.061, 0.023),
     (0.8, 1.3, 1.088, 0.029),
@@ -328,18 +330,20 @@ def b2gdas_fwlite(argv):
     ## /\__|    \  ___/|  |   \     \___(  <_> )  | \/|  | \/\  ___/\  \___|  | |  (  <_> )   |  \\___ \ 
     ## \________|\___  >__|    \______  /\____/|__|   |__|    \___  >\___  >__| |__|\____/|___|  /____  >
     ##               \/               \/                          \/     \/                    \/     \/ 
+
+#TODO Run-dependent
     ROOT.gSystem.Load('libCondFormatsJetMETObjects')
     if options.isData:
-        jecAK4 = createJEC('JECs/Spring16_25nsV6_DATA', ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFchs')
-        jecAK8 = createJEC('JECs/Spring16_25nsV6_DATA', ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFchs')
-        jecUncAK4 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Spring16_25nsV6_DATA_Uncertainty_AK4PFchs.txt'))
-        jecUncAK8 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Spring16_25nsV6_DATA_Uncertainty_AK8PFchs.txt'))
+        jecAK4 = createJEC('JECs/Fall17_25nsV6_DATA', ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFchs')
+        jecAK8 = createJEC('JECs/Fall17_25nsV6_DATA', ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFchs')
+        jecUncAK4 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_DATA_Uncertainty_AK4PFchs.txt'))
+        jecUncAK8 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_DATA_Uncertainty_AK8PFchs.txt'))
 
     else:
-        jecAK4 = createJEC('JECs/Spring16_25nsV6_MC', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'AK4PFchs')
-        jecAK8 = createJEC('JECs/Spring16_25nsV6_MC', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'AK8PFchs')
-        jecUncAK4 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Spring16_25nsV6_MC_Uncertainty_AK4PFchs.txt'))
-        jecUncAK8 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Spring16_25nsV6_MC_Uncertainty_AK8PFchs.txt'))
+        jecAK4 = createJEC('JECs/Fall17_25nsV6_MC', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'AK4PFchs')
+        jecAK8 = createJEC('JECs/Fall17_25nsV6_MC', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'AK8PFchs')
+        jecUncAK4 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_MC_Uncertainty_AK4PFchs.txt'))
+        jecUncAK8 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_MC_Uncertainty_AK8PFchs.txt'))
 
     selectElectron = VIDElectronSelector(mvaEleID_Spring15_25ns_nonTrig_V1_wp80)
     selectElectron._VIDSelectorBase__instance.ignoreCut('GsfEleEffAreaPFIsoCut_0')
