@@ -1,26 +1,45 @@
 #! /usr/bin/env python
-
 import ROOT, copy, sys, logging
 from array import array
 from DataFormats.FWLite import Events, Handle
+
 # Use the VID framework for the electron ID. Tight ID without the PF isolation cut. 
 from RecoEgamma.ElectronIdentification.VIDElectronSelector import VIDElectronSelector
-#from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff import cutBasedElectronID_Fall17_94X_V1_tight
-from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff import cutBasedElectronID_Spring15_25ns_V1_standalone_tight
+from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff import cutBasedElectronID_Fall17_94X_V1_tight
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff import mvaEleID_Fall17_V1_wp80
+#from mvaElectronID_Fall17_noIso_V1_cff_test import mvaEleID_Fall17_V1_wp80
+#from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff import cutBasedElectronID_Spring15_25ns_V1_standalone_tight
+#from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_nonTrig_V1_cff import mvaEleID_Spring15_25ns_nonTrig_V1_wp80
 
 ############################################
 # Jet Energy Corrections / Resolution tools
 
-#TODO
-jet_energy_resolution = [ # Values from https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
-    (0.0, 0.8, 1.061, 0.023),
-    (0.8, 1.3, 1.088, 0.029),
-    (1.3, 1.9, 1.106, 0.030),
-    (1.9, 2.5, 1.126, 0.094),
-    (2.5, 3.0, 1.343, 0.123),
-    (3.0, 3.2, 1.303, 0.111),
-    (3.2, 5.0, 1.320, 0.286),
+
+
+#jet_energy_resolution = [ # Values from https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
+#    (0.0, 0.8, 1.061, 0.023),
+#    (0.8, 1.3, 1.088, 0.029),
+#    (1.3, 1.9, 1.106, 0.030),
+#    (1.9, 2.5, 1.126, 0.094),
+#    (2.5, 3.0, 1.343, 0.123),
+#    (3.0, 3.2, 1.303, 0.111),
+#    (3.2, 5.0, 1.320, 0.286),
+#]
+
+jet_energy_resolution = [
+  (0.000, 0.522, 1.1595, 0.0645),
+  (0.522, 0.783, 1.1948, 0.0652),
+  (0.783, 1.131, 1.1464, 0.0632),
+  (1.131, 1.305, 1.1609, 0.1025),
+  (1.305, 1.740, 1.1278, 0.0986),
+  (1.740, 1.930, 1.1000, 0.1079),
+  (1.930, 2.043, 1.1426, 0.1214),
+  (2.043, 2.322, 1.1512, 0.1140),
+  (2.322, 2.500, 1.2963, 0.2371),
+  (2.500, 2.853, 1.3418, 0.2091),
+  (2.853, 2.964, 1.7788, 0.2008),
+  (2.964, 3.139, 1.1869, 0.1243),
+  (3.139, 5.191, 1.1922, 0.1488)
 ]
 
 
@@ -176,8 +195,10 @@ def b2gdas_fwlite(argv):
     electrons, electronLabel = Handle("std::vector<pat::Electron>"), "slimmedElectrons"
     photons, photonLabel = Handle("std::vector<pat::Photon>"), "slimmedPhotons"
     taus, tauLabel = Handle("std::vector<pat::Tau>"), "slimmedTaus"
-    jets, jetLabel = Handle("std::vector<pat::Jet>"), "slimmedJets"
+    #jets, jetLabel = Handle("std::vector<pat::Jet>"), "slimmedJets"
+    jets, jetLabel = Handle("std::vector<pat::Jet>"), "slimmedJetsPuppi"
     ak8jets, ak8jetLabel = Handle("std::vector<pat::Jet>"), "slimmedJetsAK8"
+    #ak8jets, ak8jetLabel = Handle("std::vector<pat::Jet>"), "slimmedJetsAK8PFPuppiSoftDropPacked_SubJets"
     mets, metLabel = Handle("std::vector<pat::MET>"), "slimmedMETs"
     vertices, vertexLabel = Handle("std::vector<reco::Vertex>"), "offlineSlimmedPrimaryVertices"
     pileups, pileuplabel = Handle("std::vector<PileupSummaryInfo>"), "slimmedAddPileupInfo"
@@ -190,16 +211,16 @@ def b2gdas_fwlite(argv):
     metfiltBits, metfiltBitLabel = Handle("edm::TriggerResults"), ("TriggerResults","", options.trigProcMETFilters)
 
 
-
+#TODO find more triggers? Electron triggers?
     trigsToRun = [
-        "HLT_IsoMu22_",
-        "HLT_Mu45_eta2p1",
-        "HLT_Mu50_",
-        "HLT_Mu40_eta2p1_PFJet200_PFJet50",
-        "HLT_Ele35_WPLoose_Gsf",
-        "HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50",
-        "HLT_Ele105_CaloIdVT_GsfTrkIdT",
-        "HLT_Ele115_CaloIdVT_GsfTrkIdT"
+        "HLT_IsoMu27_v",
+        #"HLT_Mu45_eta2p1",
+        "HLT_Mu50_v",
+        #"HLT_Mu40_eta2p1_PFJet200_PFJet50",
+        #"HLT_Ele35_WPLoose_Gsf",
+        #"HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50",
+        #"HLT_Ele105_CaloIdVT_GsfTrkIdT",
+        #"HLT_Ele115_CaloIdVT_GsfTrkIdT"
         ]
     
     ##   ___ ___ .__          __                                             
@@ -331,22 +352,49 @@ def b2gdas_fwlite(argv):
     ## \________|\___  >__|    \______  /\____/|__|   |__|    \___  >\___  >__| |__|\____/|___|  /____  >
     ##               \/               \/                          \/     \/                    \/     \/ 
 
-#TODO Run-dependent
     ROOT.gSystem.Load('libCondFormatsJetMETObjects')
-    if options.isData:
-        jecAK4 = createJEC('JECs/Fall17_25nsV6_DATA', ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFchs')
-        jecAK8 = createJEC('JECs/Fall17_25nsV6_DATA', ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFchs')
-        jecUncAK4 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_DATA_Uncertainty_AK4PFchs.txt'))
-        jecUncAK8 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_DATA_Uncertainty_AK8PFchs.txt'))
+    jecAK4_B = createJEC('JECs/Fall17_17Nov2017B_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFPuppi')
+    jecAK8_B = createJEC('JECs/Fall17_17Nov2017B_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFPuppi')
+    jecUncAK4_B = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017B_V6_DATA_Uncertainty_AK4PFPuppi.txt'))
+    jecUncAK8_B = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017B_V6_DATA_Uncertainty_AK8PFPuppi.txt'))
+    
+    jecAK4_C = createJEC('JECs/Fall17_17Nov2017C_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFPuppi')
+    jecAK8_C = createJEC('JECs/Fall17_17Nov2017C_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFPuppi')
+    jecUncAK4_C = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017C_V6_DATA_Uncertainty_AK4PFPuppi.txt'))
+    jecUncAK8_C = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017C_V6_DATA_Uncertainty_AK8PFPuppi.txt'))
+    
+    jecAK4_D = createJEC('JECs/Fall17_17Nov2017D_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFPuppi')
+    jecAK8_D = createJEC('JECs/Fall17_17Nov2017D_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFPuppi')
+    jecUncAK4_D = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017D_V6_DATA_Uncertainty_AK4PFPuppi.txt'))
+    jecUncAK8_D = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017D_V6_DATA_Uncertainty_AK8PFPuppi.txt'))
+    
+    jecAK4_E = createJEC('JECs/Fall17_17Nov2017E_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFPuppi')
+    jecAK8_E = createJEC('JECs/Fall17_17Nov2017E_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFPuppi')
+    jecUncAK4_E = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017E_V6_DATA_Uncertainty_AK4PFPuppi.txt'))
+    jecUncAK8_E = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017E_V6_DATA_Uncertainty_AK8PFPuppi.txt'))
+    
+    jecAK4_F = createJEC('JECs/Fall17_17Nov2017F_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFPuppi')
+    jecAK8_F = createJEC('JECs/Fall17_17Nov2017F_V6_DATA', ['L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK8PFPuppi')
+    jecUncAK4_F = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017F_V6_DATA_Uncertainty_AK4PFPuppi.txt'))
+    jecUncAK8_F = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017F_V6_DATA_Uncertainty_AK8PFPuppi.txt'))
+    
+    jecAK4_MC = createJEC('JECs/Fall17_17Nov2017_V6_MC', ['L2Relative', 'L3Absolute'], 'AK4PFPuppi')
+    jecAK8_MC = createJEC('JECs/Fall17_17Nov2017_V6_MC', ['L2Relative', 'L3Absolute'], 'AK8PFPuppi')
+    jecUncAK4_MC = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017_V6_MC_Uncertainty_AK4PFPuppi.txt'))
+    jecUncAK8_MC = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_17Nov2017_V6_MC_Uncertainty_AK8PFPuppi.txt'))
 
-    else:
-        jecAK4 = createJEC('JECs/Fall17_25nsV6_MC', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'AK4PFchs')
-        jecAK8 = createJEC('JECs/Fall17_25nsV6_MC', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'AK8PFchs')
-        jecUncAK4 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_MC_Uncertainty_AK4PFchs.txt'))
-        jecUncAK8 = ROOT.JetCorrectionUncertainty(ROOT.std.string('JECs/Fall17_25nsV6_MC_Uncertainty_AK8PFchs.txt'))
-
-    selectElectron = VIDElectronSelector(mvaEleID_Spring15_25ns_nonTrig_V1_wp80)
-    selectElectron._VIDSelectorBase__instance.ignoreCut('GsfEleEffAreaPFIsoCut_0')
+    runnr_B = 299329
+    runnr_C = 302029
+    runnr_D = 303434
+    runnr_E = 304826
+    runnr_F = 306462
+    
+#TODO ele-ID
+    #selectElectron = VIDElectronSelector(mvaEleID_Fall17_V1_wp80)
+    #selectElectron = VIDElectronSelector(cutBasedElectronID_Fall17_94X_V1_tight)
+    #selectElectron._VIDSelectorBase__instance.ignoreCut('MinPtCut')
+    #selectElectron = VIDElectronSelector(mvaEleID_Spring15_25ns_nonTrig_V1_wp80)
+    #selectElectron._VIDSelectorBase__instance.ignoreCut('GsfEleEffAreaPFIsoCut_0')
 
 
     ## __________.__.__                        __________                     .__       .__     __  .__                
@@ -355,6 +403,7 @@ def b2gdas_fwlite(argv):
     ##  |    |   |  |  |_\  ___/|  |  /  |_> >  |    |   \  ___/\     /\  ___/|  / /_/  >   Y  \  | |  |   |  \/ /_/  >
     ##  |____|   |__|____/\___  >____/|   __/   |____|_  /\___  >\/\_/  \___  >__\___  /|___|  /__| |__|___|  /\___  / 
     ##                        \/      |__|             \/     \/            \/  /_____/      \/             \//_____/  
+
     # Obtained on lxplus using this recipe:
     # https://twiki.cern.ch/twiki/bin/view/CMS/PileupJSONFileforData#2015_Pileup_JSON_Files
     # cmsrel (bla bla bla)
@@ -374,6 +423,7 @@ def b2gdas_fwlite(argv):
         purw = pileupReweightFile.Get('pileup')
 
 
+    #TODO
     # Lepton efficiencies
     if not options.isData: 
         electonSFFile = ROOT.TFile('egammaEffi.txt_SF2D.root', 'READ')
@@ -406,6 +456,8 @@ def b2gdas_fwlite(argv):
         LepWeightUnc = 0.0
         MuTrkWeight = 1.0
         MuTrkWeightUnc = 0.0
+        runnr = iev,event.eventAuxiliary().run()
+
 
         ##   ___ ___ .____  ___________                    .___ ___________.__.__   __                       
         ##  /   |   \|    | \__    ___/ _____    ____    __| _/ \_   _____/|__|  |_/  |_  ___________  ______
@@ -422,6 +474,7 @@ def b2gdas_fwlite(argv):
         # Perform trigger selection
         event.getByLabel(triggerBitLabel, triggerBits)
         event.getByLabel(metfiltBitLabel, metfiltBits)
+        
 
         if options.verbose:
             print "\nProcessing %d: run %6d, lumi %4d, event %12d" % (iev,event.eventAuxiliary().run(), event.eventAuxiliary().luminosityBlock(),event.eventAuxiliary().event())
@@ -449,6 +502,8 @@ def b2gdas_fwlite(argv):
             print "\n === MET FILTER PATHS ==="
         names2 = event.object().triggerNames(metfiltBits.product())
         passFilters = True
+
+        #TODO
         for itrig in xrange(metfiltBits.product().size()):
             if names2.triggerName(itrig) == "Flag_HBHENoiseFilter" and not metfiltBits.product().accept(itrig):
                 passFilters = False
@@ -587,11 +642,14 @@ def b2gdas_fwlite(argv):
 
         # Select tight good electrons
         goodelectrons = []
+        
+        #TODO
         if len(electrons.product()) > 0:
             for i,electron in enumerate( electrons.product() ):
-                passTight = selectElectron( electron, event )
-                if electron.pt() > options.minElectronPt and abs(electron.eta()) < options.maxElectronEta \
-                    and passTight:
+                #passTight = selectElectron( electron, event )
+                passTight = True
+                if electron.pt() > options.minElectronPt and abs(electron.eta()) < options.maxElectronEta and passTight:
+                #if electron.pt() > options.minElectronPt and abs(electron.eta()) < options.maxElectronEta:
                     goodelectrons.append( electron )
                     if options.verbose:
                         print "elec %2d: pt %4.1f, supercluster eta %+5.3f, phi %+5.3f sigmaIetaIeta %.3f (%.3f with full5x5 shower shapes), pass conv veto %d" % \
@@ -780,7 +838,19 @@ def b2gdas_fwlite(argv):
                         break
 
             # Apply new JEC's
-            (newJEC, corrDn, corrUp) = getJEC(jecAK4, jecUncAK4, jetP4Raw, jet.jetArea(), rho, NPV)
+            # Different JEC needs to be applied for each run period
+            if not options.isData:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_MC, jecUncAK8_MC, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_B:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_B, jecUncAK8_B, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_C:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_C, jecUncAK8_C, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_D:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_D, jecUncAK8_D, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_E:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_E, jecUncAK8_E, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_F:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_F, jecUncAK8_F, jetP4Raw, jet.jetArea(), rho, NPV)
 
             # If MC, get jet energy resolution
             ptsmear   = 1.0
@@ -876,6 +946,8 @@ def b2gdas_fwlite(argv):
             jetP4Raw = copy.copy(jetP4)
             jetP4Raw *= jet.jecFactor(0)
 
+            if not jet.isPFJet(): 
+                return
             nhf = jet.neutralHadronEnergy() / jetP4Raw.E()
             nef = jet.neutralEmEnergy() / jetP4Raw.E()
             chf = jet.chargedHadronEnergy() / jetP4Raw.E()
@@ -893,7 +965,18 @@ def b2gdas_fwlite(argv):
             if not goodJet:
                 return
 
-            (newJEC, corrDn, corrUp) = getJEC(jecAK8, jecUncAK8, jetP4Raw, jet.jetArea(), rho, NPV)
+            if not options.isData:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_MC, jecUncAK8_MC, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_B:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_B, jecUncAK8_B, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_C:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_C, jecUncAK8_C, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_D:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_D, jecUncAK8_D, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_E:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_E, jecUncAK8_E, jetP4Raw, jet.jetArea(), rho, NPV)
+            elif runnr <= runnr_F:
+                (newJEC, corrDn, corrUp) = getJEC(jecAK8_F, jecUncAK8_F, jetP4Raw, jet.jetArea(), rho, NPV)
 
             # If MC, get jet energy resolution
             ptsmear   = 1.0
@@ -954,8 +1037,9 @@ def b2gdas_fwlite(argv):
             if jet.pt() < options.minAK8Pt:
                 continue
 
-            mAK8Softdrop = jet.userFloat('ak8PFJetsCHSSoftDropMass')
-            mAK8Pruned = jet.userFloat('ak8PFJetsCHSPrunedMass')
+            #mAK8Softdrop = jet.userFloat('ak8PFJetsCHSSoftDropMass')
+            mAK8Softdrop = jet.userFloat('ak8PFJetsPuppiSoftDropMass')
+            #mAK8Pruned = jet.userFloat('ak8PFJetsCHSValueMap:ak8PFJetsCHSPrunedMass') #No longer stored in AK8 collection for Puppi jets
             #mAK8Filtered = jet.userFloat('ak8PFJetsCHSFilteredMass')
             #mAK8Trimmed = jet.userFloat('ak8PFJetsCHSTrimmedMass')
 
@@ -965,7 +1049,7 @@ def b2gdas_fwlite(argv):
             h_yAK8.Fill( jet.rapidity(), evWeight )
             h_mAK8.Fill( jet.mass(), evWeight )
             h_msoftdropAK8.Fill( mAK8Softdrop, evWeight )
-            h_mprunedAK8.Fill( mAK8Pruned, evWeight )
+            #h_mprunedAK8.Fill( mAK8Pruned, evWeight ) #No longer stored in AK8 collection for Puppi jets
             #h_mfilteredAK8.Fill( mAK8Filtered, evWeight )
             #h_mtrimmedAK8.Fill( mAK8Trimmed, evWeight )
 
@@ -986,9 +1070,9 @@ def b2gdas_fwlite(argv):
             # Make sure there are top tags if we want to plot them
             tagInfoLabels = ak8JetsGood[candToPlot].tagInfoLabels()
             # Get n-subjettiness "tau" variables
-            tau1 = ak8JetsGood[candToPlot].userFloat('NjettinessAK8:tau1')
-            tau2 = ak8JetsGood[candToPlot].userFloat('NjettinessAK8:tau2')
-            tau3 = ak8JetsGood[candToPlot].userFloat('NjettinessAK8:tau3')
+            tau1 = ak8JetsGood[candToPlot].userFloat('NjettinessAK8Puppi:tau1')
+            tau2 = ak8JetsGood[candToPlot].userFloat('NjettinessAK8Puppi:tau2')
+            tau3 = ak8JetsGood[candToPlot].userFloat('NjettinessAK8Puppi:tau3')
             if tau1 > 0.0001:
                 tau21 = tau2 / tau1
                 h_tau21AK8.Fill( tau21, evWeight )
@@ -1004,7 +1088,7 @@ def b2gdas_fwlite(argv):
             # aka softdrop with beta=0.
             # The heaviest should correspond to the W and the lightest
             # should correspond to the b. 
-            subjets = ak8JetsGood[candToPlot].subjets('SoftDrop')
+            subjets = ak8JetsGood[candToPlot].subjets('SoftDropPuppi')
             subjetW = None
             subjetB = None
             if len(subjets) >= 2:
@@ -1031,7 +1115,7 @@ def b2gdas_fwlite(argv):
             FatJetEnergy        [0] = ak8JetsGoodP4[candToPlot].Energy()
             FatJetMass          [0] = ak8JetsGoodP4[candToPlot].M()
             FatJetBDisc         [0] = ak8JetsGood[candToPlot].bDiscriminator(options.bdisc)
-            FatJetMassSoftDrop  [0] = ak8JetsGood[candToPlot].userFloat('ak8PFJetsCHSSoftDropMass')
+            FatJetMassSoftDrop  [0] = ak8JetsGood[candToPlot].userFloat('ak8PFJetsPuppiSoftDropMass')
             FatJetTau32         [0] = tau32
             FatJetTau21         [0] = tau21
             FatJetJECUpSys      [0] = ak8JetsGoodSysts[candToPlot][0]
@@ -1070,6 +1154,7 @@ def b2gdas_fwlite(argv):
             SemiLeptEventNum    [0] = event.object().id().event()
 
             TreeSemiLept.Fill()
+            print 'Filled Tree!!'
 
 
     #########################################
