@@ -6,25 +6,13 @@ from DataFormats.FWLite import Events, Handle
 # Use the VID framework for the electron ID. Tight ID without the PF isolation cut. 
 from RecoEgamma.ElectronIdentification.VIDElectronSelector import VIDElectronSelector
 from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff import cutBasedElectronID_Fall17_94X_V1_tight
-from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff import mvaEleID_Fall17_V1_wp80
-#from mvaElectronID_Fall17_noIso_V1_cff_test import mvaEleID_Fall17_V1_wp80
+#from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff import mvaEleID_Fall17_V1_wp80
 #from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff import cutBasedElectronID_Spring15_25ns_V1_standalone_tight
 #from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_nonTrig_V1_cff import mvaEleID_Spring15_25ns_nonTrig_V1_wp80
 
 ############################################
 # Jet Energy Corrections / Resolution tools
 
-
-
-#jet_energy_resolution = [ # Values from https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
-#    (0.0, 0.8, 1.061, 0.023),
-#    (0.8, 1.3, 1.088, 0.029),
-#    (1.3, 1.9, 1.106, 0.030),
-#    (1.9, 2.5, 1.126, 0.094),
-#    (2.5, 3.0, 1.343, 0.123),
-#    (3.0, 3.2, 1.303, 0.111),
-#    (3.2, 5.0, 1.320, 0.286),
-#]
 
 jet_energy_resolution = [
   (0.000, 0.522, 1.1595, 0.0645),
@@ -101,6 +89,33 @@ def getJER(jetEta, sysType):
                 return scale_nom
     raise Exception('ERROR: Unable to get JER for jets at eta = %.3f!' % jetEta)
 
+
+#TODO: Workaround to avoid VID, 2 variables not easy to get (see below)
+def idElectron(ele, rho, idname):
+    """
+    This function selects electrons fulfilling the cut-based ID defined here:
+    https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2#Working_points_for_92X_and_later
+    """
+    
+    etabarrel = 1.479
+    abseta = abs(ele.eta())
+    isbarrel = abseta <= etabarrel
+    
+    # All variables that are used in the non-isolated IDs
+    sieie = ele.full5x5_sigmaIetaIeta()
+    absdetaseed = abs(ele.deltaEtaSuperClusterTrackAtVtx() - ele.superCluster().eta() + ele.superCluster().seed().eta())
+    absdphiin = abs(ele.deltaPhiSuperClusterTrackAtVtx())
+    if isbarrel:
+        c0 = cand.hadronicOverEm() - 1.12/ele.superCluster().energy() - 0.0368*rho/ele.superCluster().energy()
+    else:
+        c0 = cand.hadronicOverEm() - 0.5/ele.superCluster().energy() - 0.201*rho/ele.superCluster().energy()
+    absooemoop = abs(float(1)-ele.eSuperClusterOverP()) * (float(1)/ele.ecalEnergy())
+    
+    #TODO: Exp missing inner hits
+    #TODO: Conversion veto
+
+
+
 ############################################
 # Command line parsing
 
@@ -138,13 +153,13 @@ def getUserOptions(argv):
         help='Name of b jet discriminator')
     add_option('bdiscMin',           default=0.679, type='float',
         help='Minimum b discriminator')
-    add_option('minMuonPt',          default=45.,   type='float',
+    add_option('minMuonPt',          default=55.,   type='float',
         help='Minimum PT for muons')
-    add_option('maxMuonEta',         default=2.1,   type='float',
+    add_option('maxMuonEta',         default=2.4,   type='float',
         help='Maximum muon pseudorapidity')
     add_option('minElectronPt',      default=45.,   type='float',
         help='Minimum PT for electrons')
-    add_option('maxElectronEta',     default=2.5,   type='float',
+    add_option('maxElectronEta',     default=2.4,   type='float',
         help='Maximum electron pseudorapidity')
     add_option('minAK4Pt',           default=30.,   type='float',
         help='Minimum PT for AK4 jets')
@@ -213,7 +228,7 @@ def b2gdas_fwlite(argv):
 
 #TODO find more triggers? Electron triggers?
     trigsToRun = [
-        "HLT_IsoMu27_v",
+        #"HLT_IsoMu27_v",
         #"HLT_Mu45_eta2p1",
         "HLT_Mu50_v",
         #"HLT_Mu40_eta2p1_PFJet200_PFJet50",
@@ -423,17 +438,23 @@ def b2gdas_fwlite(argv):
         purw = pileupReweightFile.Get('pileup')
 
 
-    #TODO
     # Lepton efficiencies
     if not options.isData: 
-        electonSFFile = ROOT.TFile('egammaEffi.txt_SF2D.root', 'READ')
+        electonSFFile = ROOT.TFile('egammaEffi.txt_EGM2D_runBCDEF_passingRECO.root', 'READ')
         ele_SFs = electonSFFile.Get('EGamma_SF2D')
 
-        muonSFFile = ROOT.TFile('MuonID_Z_RunBCD_prompt80X_7p65.root', 'READ')
-        muon_SFs = muonSFFile.Get('MC_NUM_TightIDandIPCut_DEN_genTracks_PAR_pt_spliteta_bin1/pt_abseta_ratio')
+#TODO: Ele ID SF?
+#TODO: Systematic SF file?
+#TODO: HLT SF?
 
-        muonTrkSFFile = ROOT.TFile('general_tracks_and_early_general_tracks_corr_ratio.root', 'READ')
-        muonTrk_SFs = muonTrkSFFile.Get('mutrksfptg10')
+        muonSFFile = ROOT.TFile('MuonID_SF.root', 'READ')
+        muon_SFs = muonSFFile.Get('NUM_HighPtID_DEN_genTracks_pair_newTuneP_probe_pt_abseta')
+
+        muonSFSysFile = ROOT.TFile('MuonIF_HighPt_Sys.root', 'READ')
+        muon_SFs_Sys = muonSFSysFile.Get('NUM_HighPtID_DEN_genTracks_pair_newTuneP_probe_pt_abseta')
+
+        #muonTrkSFFile = ROOT.TFile('general_tracks_and_early_general_tracks_corr_ratio.root', 'READ')
+        #muonTrk_SFs = muonTrkSFFile.Get('mutrksfptg10')
 
         
     ## ___________                    __    .____                         
@@ -503,22 +524,27 @@ def b2gdas_fwlite(argv):
         names2 = event.object().triggerNames(metfiltBits.product())
         passFilters = True
 
-        #TODO
-        for itrig in xrange(metfiltBits.product().size()):
-            if names2.triggerName(itrig) == "Flag_HBHENoiseFilter" and not metfiltBits.product().accept(itrig):
-                passFilters = False
-            if names2.triggerName(itrig) == "Flag_HBHENoiseIsoFilter" and not metfiltBits.product().accept(itrig):
-                passFilters = False
-            if names2.triggerName(itrig) == "Flag_CSCTightHalo2015Filter" and not metfiltBits.product().accept(itrig):
-                passFilters = False
-            if names2.triggerName(itrig) == "Flag_EcalDeadCellTriggerPrimitiveFilter" and not metfiltBits.product().accept(itrig):
-                passFilters = False
+        for itrig in xrange(metfiltBits.product().size()):            
             if names2.triggerName(itrig) == "Flag_goodVertices" and not metfiltBits.product().accept(itrig):
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_globalTightHalo2016Filter" and not metfiltBits.product().accept(itrig):
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_HBHENoiseFilter" and not metfiltBits.product().accept(itrig):
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_HBHENoiseIsoFilter" and not metfiltBits.product().accept(itrig):
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_EcalDeadCellTriggerPrimitiveFilter" and not metfiltBits.product().accept(itrig):
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_BadPFMuonFilter" and not metfiltBits.product().accept(itrig):
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_BadChargedCandidateFilter" and not metfiltBits.product().accept(itrig):
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_eeBadScFilter" and not metfiltBits.product().accept(itrig) and options.IsData:
+                passFilters = False            
+            if names2.triggerName(itrig) == "Flag_ecalBadCalibFilter" and not metfiltBits.product().accept(itrig):
                 passFilters = False
-            if names2.triggerName(itrig) == "Flag_eeBadScFilter" and not metfiltBits.product().accept(itrig):
-                passFilters = False
-            if options.verbose:
-                print "MET Filter ", names2.triggerName(itrig),  ": ", ("PASS" if metfiltBits.product().accept(itrig) else "fail (or not run)") 
+
+
 
         if not passFilters:
             return
@@ -634,7 +660,7 @@ def b2gdas_fwlite(argv):
         goodmuons = []
         if len(muons.product()) > 0:
             for i,muon in enumerate( muons.product() ):
-                if muon.pt() > options.minMuonPt and abs(muon.eta()) < options.maxMuonEta and muon.muonBestTrack().dz(PV.position()) < 5.0 and muon.isTightMuon(PV):
+                if muon.pt() > options.minMuonPt and abs(muon.eta()) < options.maxMuonEta and muon.muonBestTrack().dz(PV.position()) < 5.0 and muon.isHighPtMuon(PV):
                     goodmuons.append( muon )
                     if options.verbose:
                         print "muon %2d: pt %4.1f, eta %+5.3f phi %+5.3f dz(PV) %+5.3f, POG loose id %d, tight id %d." % (
@@ -649,7 +675,6 @@ def b2gdas_fwlite(argv):
                 #passTight = selectElectron( electron, event )
                 passTight = True
                 if electron.pt() > options.minElectronPt and abs(electron.eta()) < options.maxElectronEta and passTight:
-                #if electron.pt() > options.minElectronPt and abs(electron.eta()) < options.maxElectronEta:
                     goodelectrons.append( electron )
                     if options.verbose:
                         print "elec %2d: pt %4.1f, supercluster eta %+5.3f, phi %+5.3f sigmaIetaIeta %.3f (%.3f with full5x5 shower shapes), pass conv veto %d" % \
@@ -686,15 +711,17 @@ def b2gdas_fwlite(argv):
                 LepWeightUnc =  muon_SFs.GetBinError( muon_SFs.GetXaxis().FindBin( pt ), muon_SFs.GetYaxis().FindBin( eta ) )
                 #if overflow:
                 #    LepWeightUnc *=2
-                # add additional 1% systematic uncertainty for ID +0.5% for HIP effect
-                LepWeightUnc = (LepWeightUnc**2 + (0.01*LepWeight)**2 + (0.005*LepWeight)**2)**0.5
+                # add additional 1% systematic uncertainty for ID
+                LepWeightUnc = (LepWeightUnc**2 + (0.01*LepWeight)**2)**0.5
                 evWeight *= LepWeight
 
                 # tracker efficiency sccale factors
-                eta = goodmuons[0].eta()
-                MuTrkWeight = muonTrk_SFs.GetBinContent( muonTrk_SFs.GetXaxis().FindBin( eta ))
-                MuTrkWeightUnc = muonTrk_SFs.GetBinError( muonTrk_SFs.GetXaxis().FindBin( eta ))
-                evWeight *= MuTrkWeight
+                #eta = goodmuons[0].eta()
+                #MuTrkWeight = muonTrk_SFs.GetBinContent( muonTrk_SFs.GetXaxis().FindBin( eta ))
+                #MuTrkWeightUnc = muonTrk_SFs.GetBinError( muonTrk_SFs.GetXaxis().FindBin( eta ))
+                #evWeight *= MuTrkWeight
+
+                #TODO: Implement Muon ID sys weights
 
         else:
             theLeptonCand = goodelectrons[0]
