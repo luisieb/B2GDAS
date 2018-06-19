@@ -7,7 +7,13 @@ Beyond Two Generations Physics Analysis Group (B2G PAG)
 
 To run :
 
+`module use -a /afs/desy.de/group/cms/modulefiles/`
+
+`module load cmssw`
+
 `export SCRAM_ARCH=slc6_amd64_gcc630` *if using BASH*
+
+`cmsenv`
 
 `cmsrel CMSSW_9_4_8`
 
@@ -22,3 +28,15 @@ To run :
 `cd test`
 
 `python b2gdas_fwlite.py --input=inputfiles/ttsemilep.txt --output=ttsemilep.root --maxevents 10000`
+
+
+After this initial setup, the following lines should be executed in the CMSSW_9_4_8/src directory.
+
+`module use -a /afs/desy.de/group/cms/modulefiles/`
+
+`module load cmssw`
+
+`export SCRAM_ARCH=slc6_amd64_gcc630`
+
+`cmsenv`
+
