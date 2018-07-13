@@ -3,13 +3,6 @@ import ROOT, copy, sys, logging
 from array import array
 from DataFormats.FWLite import Events, Handle
 
-# Use the VID framework for the electron ID. Tight ID without the PF isolation cut. 
-from RecoEgamma.ElectronIdentification.VIDElectronSelector import VIDElectronSelector
-from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff import cutBasedElectronID_Fall17_94X_V1_tight
-#from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff import mvaEleID_Fall17_V1_wp80
-#from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff import cutBasedElectronID_Spring15_25ns_V1_standalone_tight
-#from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_nonTrig_V1_cff import mvaEleID_Spring15_25ns_nonTrig_V1_wp80
-
 ############################################
 # Jet Energy Corrections / Resolution tools
 
@@ -90,30 +83,6 @@ def getJER(jetEta, sysType):
     raise Exception('ERROR: Unable to get JER for jets at eta = %.3f!' % jetEta)
 
 
-#TODO: Workaround to avoid VID, 2 variables not easy to get (see below)
-def idElectron(ele, rho, idname):
-    """
-    This function selects electrons fulfilling the cut-based ID defined here:
-    https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2#Working_points_for_92X_and_later
-    """
-    
-    etabarrel = 1.479
-    abseta = abs(ele.eta())
-    isbarrel = abseta <= etabarrel
-    
-    # All variables that are used in the non-isolated IDs
-    sieie = ele.full5x5_sigmaIetaIeta()
-    absdetaseed = abs(ele.deltaEtaSuperClusterTrackAtVtx() - ele.superCluster().eta() + ele.superCluster().seed().eta())
-    absdphiin = abs(ele.deltaPhiSuperClusterTrackAtVtx())
-    if isbarrel:
-        c0 = cand.hadronicOverEm() - 1.12/ele.superCluster().energy() - 0.0368*rho/ele.superCluster().energy()
-    else:
-        c0 = cand.hadronicOverEm() - 0.5/ele.superCluster().energy() - 0.201*rho/ele.superCluster().energy()
-    absooemoop = abs(float(1)-ele.eSuperClusterOverP()) * (float(1)/ele.ecalEnergy())
-    
-    #TODO: Exp missing inner hits
-    #TODO: Conversion veto
-
 
 
 ############################################
@@ -128,45 +97,52 @@ def getUserOptions(argv):
 
     add_option('input',              default='',
         help='Name of file with list of input files')
+
     add_option('output',             default='output.root',
         help='Name of output file')
+
     add_option('verbose',            default=False, action='store_true',
         help='Print debugging info')
+
     add_option('maxevents',          default=-1,
         help='Number of events to run. -1 is all events')
+
     add_option('isCrabRun',          default=False, action='store_true',
         help='Use this flag when running with crab on the grid')
 
     add_option('disableTree',        default=False, action='store_true',
         help='Disable Tree creation')
+
     add_option('disablePileup',      default=False, action='store_true',
         help='Disable pileup reweighting')
+
     add_option('isData',             default=False, action='store_true',
         help='Enable processing as data')
 
     add_option('trigProc',           default='HLT',
         help='Name of trigger process')
+
     add_option('trigProcMETFilters', default='PAT',
         help='Name of trigger process for MET filters')
 
-    add_option('bdisc',              default='pfCombinedInclusiveSecondaryVertexV2BJetTags',
+    add_option('bdisc',              default='pfDeepCSVJetTags:probb',
         help='Name of b jet discriminator')
-    add_option('bdiscMin',           default=0.679, type='float',
-        help='Minimum b discriminator')
+
     add_option('minMuonPt',          default=55.,   type='float',
         help='Minimum PT for muons')
+
     add_option('maxMuonEta',         default=2.4,   type='float',
         help='Maximum muon pseudorapidity')
-    add_option('minElectronPt',      default=45.,   type='float',
-        help='Minimum PT for electrons')
-    add_option('maxElectronEta',     default=2.4,   type='float',
-        help='Maximum electron pseudorapidity')
+
     add_option('minAK4Pt',           default=30.,   type='float',
         help='Minimum PT for AK4 jets')
+
     add_option('maxAK4Rapidity',     default=2.4,   type='float',
         help='Maximum AK4 rapidity')
+
     add_option('minAK8Pt',           default=400.,  type='float',
         help='Minimum PT for AK8 jets')
+
     add_option('maxAK8Rapidity',     default=2.4,   type='float',
         help='Maximum AK8 rapidity')
 
@@ -227,16 +203,7 @@ def b2gdas_fwlite(argv):
 
 
 #TODO find more triggers? Electron triggers?
-    trigsToRun = [
-        #"HLT_IsoMu27_v",
-        #"HLT_Mu45_eta2p1",
-        "HLT_Mu50_v",
-        #"HLT_Mu40_eta2p1_PFJet200_PFJet50",
-        #"HLT_Ele35_WPLoose_Gsf",
-        #"HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50",
-        #"HLT_Ele105_CaloIdVT_GsfTrkIdT",
-        #"HLT_Ele115_CaloIdVT_GsfTrkIdT"
-        ]
+    trigsToRun = ["HLT_Mu50_v"]
     
     ##   ___ ___ .__          __                                             
     ##  /   |   \|__| _______/  |_  ____   ________________    _____   ______
@@ -271,8 +238,6 @@ def b2gdas_fwlite(argv):
         # Event weights
         GenWeight             = bookFloatBranch('GenWeight', 0.)
         PUWeight              = bookFloatBranch('PUWeight', 0.)
-        MuonTrkWeight         = bookFloatBranch('MuonTrkWeight', 0.)
-        MuonTrkWeightUnc      = bookFloatBranch('MuonTrkWeightUnc', 0.)
         # Fat jet properties
         FatJetBDisc           = bookFloatBranch('FatJetBDisc', -1.)
         FatJetDeltaPhiLep     = bookFloatBranch('FatJetDeltaPhiLep', -1.) 
@@ -301,6 +266,10 @@ def b2gdas_fwlite(argv):
         LeptonEta             = bookFloatBranch('LeptonEta', -1.)
         LeptonIDWeight        = bookFloatBranch('LeptonIDWeight', 0.)
         LeptonIDWeightUnc     = bookFloatBranch('LeptonIDWeightUnc', 0.)
+        LeptonIsoWeight       = bookFloatBranch('LeptonIsoWeight', 0.)
+        LeptonIsoWeightUnc    = bookFloatBranch('LeptonIsoWeightUnc', 0.)
+        LeptonTrigWeight      = bookFloatBranch('LeptonTrigWeight', 0.)
+        LeptonTrigWeightUnc   = bookFloatBranch('LeptonTrigWeightUnc', 0.)
         LeptonIso             = bookFloatBranch('LeptonIso', -1.)
         LeptonPhi             = bookFloatBranch('LeptonPhi', -1.)
         LeptonPt              = bookFloatBranch('LeptonPt', -1.)
@@ -327,7 +296,6 @@ def b2gdas_fwlite(argv):
         SemiLeptRunNum        = bookIntBranch('SemiLeptRunNum', -1)
 
     # and also make a few 1-d histograms
-    h_mttbar = ROOT.TH1F("h_mttbar", ";m_{t#bar{t}} (GeV)", 200, 0, 6000)
     h_mttbar_true = ROOT.TH1F("h_mttbar_true", "True m_{t#bar{t}};m_{t#bar{t}} (GeV)", 200, 0, 6000)
 
     h_ptLep = ROOT.TH1F("h_ptLep", "Lepton p_{T};p_{T} (GeV)", 100, 0, 1000)
@@ -350,9 +318,6 @@ def b2gdas_fwlite(argv):
     h_phiAK8 = ROOT.TH1F("h_phiAK8", "AK8 Jet #phi;#phi (radians)",100,-ROOT.Math.Pi(),ROOT.Math.Pi())
     h_mAK8 = ROOT.TH1F("h_mAK8", "AK8 Jet Mass;Mass (GeV)", 100, 0, 1000)
     h_msoftdropAK8 = ROOT.TH1F("h_msoftdropAK8", "AK8 Softdrop Jet Mass;Mass (GeV)", 100, 0, 1000)
-    h_mprunedAK8 = ROOT.TH1F("h_mprunedAK8", "AK8 Pruned Jet Mass;Mass (GeV)", 100, 0, 1000)
-    #h_mfilteredAK8 = ROOT.TH1F("h_mfilteredAK8", "AK8 Filtered Jet Mass;Mass (GeV)", 100, 0, 1000)
-    #h_mtrimmedAK8 = ROOT.TH1F("h_mtrimmedAK8", "AK8 Trimmed Jet Mass;Mass (GeV)", 100, 0, 1000)
     h_minmassAK8 = ROOT.TH1F("h_minmassAK8", "AK8 CMS Top Tagger Min Mass Paring;m_{min} (GeV)", 100, 0, 1000)
     h_nsjAK8 = ROOT.TH1F("h_nsjAK8", "AK8 CMS Top Tagger N_{subjets};N_{subjets}", 5, 0, 5)
     h_tau21AK8 = ROOT.TH1F("h_tau21AK8", "AK8 Jet #tau_{2} / #tau_{1};Mass#tau_{21}", 100, 0, 1.0)
@@ -403,13 +368,6 @@ def b2gdas_fwlite(argv):
     runnr_D = 303434
     runnr_E = 304826
     runnr_F = 306462
-    
-#TODO ele-ID
-    #selectElectron = VIDElectronSelector(mvaEleID_Fall17_V1_wp80)
-    #selectElectron = VIDElectronSelector(cutBasedElectronID_Fall17_94X_V1_tight)
-    #selectElectron._VIDSelectorBase__instance.ignoreCut('MinPtCut')
-    #selectElectron = VIDElectronSelector(mvaEleID_Spring15_25ns_nonTrig_V1_wp80)
-    #selectElectron._VIDSelectorBase__instance.ignoreCut('GsfEleEffAreaPFIsoCut_0')
 
 
     ## __________.__.__                        __________                     .__       .__     __  .__                
@@ -438,23 +396,14 @@ def b2gdas_fwlite(argv):
         purw = pileupReweightFile.Get('pileup')
 
 
-    # Lepton efficiencies
+    # Lepton efficiencies and systematic uncertainties
     if not options.isData: 
-        electonSFFile = ROOT.TFile('egammaEffi.txt_EGM2D_runBCDEF_passingRECO.root', 'READ')
-        ele_SFs = electonSFFile.Get('EGamma_SF2D')
-
-#TODO: Ele ID SF?
-#TODO: Systematic SF file?
-#TODO: HLT SF?
-
-        muonSFFile = ROOT.TFile('MuonID_SF.root', 'READ')
-        muon_SFs = muonSFFile.Get('NUM_HighPtID_DEN_genTracks_pair_newTuneP_probe_pt_abseta')
-
-        muonSFSysFile = ROOT.TFile('MuonIF_HighPt_Sys.root', 'READ')
-        muon_SFs_Sys = muonSFSysFile.Get('NUM_HighPtID_DEN_genTracks_pair_newTuneP_probe_pt_abseta')
-
-        #muonTrkSFFile = ROOT.TFile('general_tracks_and_early_general_tracks_corr_ratio.root', 'READ')
-        #muonTrk_SFs = muonTrkSFFile.Get('mutrksfptg10')
+        muonIDSFFile = ROOT.TFile('MuonID_Sys.root', 'READ')
+        muonID_SFs = muonIDSFFile.Get('NUM_HighPtID_DEN_genTracks_pair_newTuneP_probe_pt_abseta')
+        muonIsoSFFile = ROOT.TFile('MuonIso_Sys.root', 'READ')
+        muonIso_SFs = muonIsoSFFile.Get('NUM_LooseRelTkIso_DEN_HighPtIDandIPCut_pair_newTuneP_probe_pt_abseta')
+        muonTrigSFFile = ROOT.TFile('MuonTrigger_SF.root', 'READ')
+        muonTrig_SFs = muonTrigSFFile.Get('Mu50_PtEtaBins/pt_abseta_ratio')
 
         
     ## ___________                    __    .____                         
@@ -470,14 +419,18 @@ def b2gdas_fwlite(argv):
     # can take a long time to parse. 
 
     def processEvent(iev, event):
+        #print '--------- NEW EVENT ----------'
+
         evWeight = 1.0
         puWeight = 1.0
         genWeight = 1.0
-        LepWeight = 1.0
-        LepWeightUnc = 0.0
-        MuTrkWeight = 1.0
-        MuTrkWeightUnc = 0.0
-        runnr = iev,event.eventAuxiliary().run()
+        LepWeightID = 1.0
+        LepWeightIDUnc = 0.0
+        LepWeightIso = 1.0
+        LepWeightIsoUnc = 0.0
+        LepWeightTrig = 1.0
+        LepWeightTrigUnc = 0.0
+        runnr = event.eventAuxiliary().run()
 
 
         ##   ___ ___ .____  ___________                    .___ ___________.__.__   __                       
@@ -581,7 +534,9 @@ def b2gdas_fwlite(argv):
                         print 'No top quarks, not filling mttbar'
             event.getByLabel( genInfoLabel, genInfo )
             genWeight = genInfo.product().weight()
-            evWeight *= genWeight
+            #print 'evWeight before multiplying with genWeight: %f' % (evWeight) 
+            #evWeight *= genWeight
+            #print 'evWeight after multiplying with genWeight: %f' % (evWeight) 
 
         ## ____   ____             __                    _________      .__                 __  .__               
         ## \   \ /   /____________/  |_  ____ ___  ___  /   _____/ ____ |  |   ____   _____/  |_|__| ____   ____  
@@ -621,7 +576,9 @@ def b2gdas_fwlite(argv):
 
             if not options.isData and not options.disablePileup:
                 puWeight = purw.GetBinContent( purw.GetXaxis().FindBin( TrueNumInteractions ) )
+                #print 'evWeight before multiplying with puWeight: %f' % (evWeight) 
                 evWeight *= puWeight
+                #print 'evWeight after multiplying with puWeight: %f' % (evWeight) 
 
         ## __________.__             ____   ____      .__                 
         ## \______   \  |__   ____   \   \ /   /____  |  |  __ __   ____  
@@ -660,25 +617,11 @@ def b2gdas_fwlite(argv):
         goodmuons = []
         if len(muons.product()) > 0:
             for i,muon in enumerate( muons.product() ):
-                if muon.pt() > options.minMuonPt and abs(muon.eta()) < options.maxMuonEta and muon.muonBestTrack().dz(PV.position()) < 5.0 and muon.isHighPtMuon(PV):
+                if muon.pt() > options.minMuonPt and abs(muon.eta()) < options.maxMuonEta and muon.muonBestTrack().dz(PV.position()) < 5.0 and muon.isHighPtMuon(PV) and muon.isolationR03().sumPt/muon.pt() < 0.1 :
                     goodmuons.append( muon )
                     if options.verbose:
-                        print "muon %2d: pt %4.1f, eta %+5.3f phi %+5.3f dz(PV) %+5.3f, POG loose id %d, tight id %d." % (
-                            i, muon.pt(), muon.eta(), muon.phi(), muon.muonBestTrack().dz(PV.position()), muon.isLooseMuon(), muon.isTightMuon(PV))
-
-        # Select tight good electrons
-        goodelectrons = []
-        
-        #TODO
-        if len(electrons.product()) > 0:
-            for i,electron in enumerate( electrons.product() ):
-                #passTight = selectElectron( electron, event )
-                passTight = True
-                if electron.pt() > options.minElectronPt and abs(electron.eta()) < options.maxElectronEta and passTight:
-                    goodelectrons.append( electron )
-                    if options.verbose:
-                        print "elec %2d: pt %4.1f, supercluster eta %+5.3f, phi %+5.3f sigmaIetaIeta %.3f (%.3f with full5x5 shower shapes), pass conv veto %d" % \
-                            ( i, electron.pt(), electron.superCluster().eta(), electron.phi(), electron.sigmaIetaIeta(), electron.full5x5_sigmaIetaIeta(), electron.passConversionVeto())
+                        print "muon %2d: pt %4.1f, eta %+5.3f phi %+5.3f dz(PV) %+5.3f, POG loose id %d, tight id %d, highpt id %d." % (
+                            i, muon.pt(), muon.eta(), muon.phi(), muon.muonBestTrack().dz(PV.position()), muon.isLooseMuon(), muon.isHighPtMuon(PV))
 
 
 
@@ -687,9 +630,10 @@ def b2gdas_fwlite(argv):
         # for lepton-jet cleaning (see below)
         theLeptonObjKey = -1
 
-        if len(goodmuons) + len(goodelectrons) != 1:
-            return
-        elif len(goodmuons) > 0:
+        #if len(goodmuons) + len(goodelectrons) != 1:
+            #return
+        #elif len(goodmuons) > 0:
+        if len(goodmuons) >= 1:
             theLeptonCand = goodmuons[0]
             theLepton = ROOT.TLorentzVector( goodmuons[0].px(),
                                              goodmuons[0].py(),
@@ -698,55 +642,57 @@ def b2gdas_fwlite(argv):
             theLeptonObjKey = goodmuons[0].originalObjectRef().key()
             leptonType = 13
 
-            # Get the muon ID and TRK scale factors for simulation
+            # Get the muon ID, Iso, and trigger scale factors for simulation
+            # Start off with ID
             if not options.isData:
                 pt = goodmuons[0].pt()
                 eta = abs(goodmuons[0].eta())
+
                 # ID scale factors
                 overflow = False
-                if pt >=200:
-                    pt=199.9
+                if pt >=120:
+                    pt=119.9
                     overflow =True
-                LepWeight = muon_SFs.GetBinContent( muon_SFs.GetXaxis().FindBin( pt ), muon_SFs.GetYaxis().FindBin( eta ) )
-                LepWeightUnc =  muon_SFs.GetBinError( muon_SFs.GetXaxis().FindBin( pt ), muon_SFs.GetYaxis().FindBin( eta ) )
-                #if overflow:
-                #    LepWeightUnc *=2
-                # add additional 1% systematic uncertainty for ID
-                LepWeightUnc = (LepWeightUnc**2 + (0.01*LepWeight)**2)**0.5
-                evWeight *= LepWeight
-
-                # tracker efficiency sccale factors
-                #eta = goodmuons[0].eta()
-                #MuTrkWeight = muonTrk_SFs.GetBinContent( muonTrk_SFs.GetXaxis().FindBin( eta ))
-                #MuTrkWeightUnc = muonTrk_SFs.GetBinError( muonTrk_SFs.GetXaxis().FindBin( eta ))
-                #evWeight *= MuTrkWeight
-
-                #TODO: Implement Muon ID sys weights
-
-        else:
-            theLeptonCand = goodelectrons[0]
-            theLepton = ROOT.TLorentzVector( goodelectrons[0].px(),
-                                             goodelectrons[0].py(),
-                                             goodelectrons[0].pz(),
-                                             goodelectrons[0].energy() )
-            theLeptonObjKey = goodelectrons[0].originalObjectRef().key()
-            leptonType = 11
-
-            # Get the electron ID scale factor for simulation
-            if not options.isData:
-                pt = goodelectrons[0].pt() 
-                eta =  goodelectrons[0].superCluster().eta()
-                overflow = False
-                if pt >=200:
-                    pt=199.9
-                    overflow =True
-                LepWeight = ele_SFs.GetBinContent( ele_SFs.GetXaxis().FindBin( eta ), ele_SFs.GetYaxis().FindBin( pt ) )
-                LepWeightUnc =  ele_SFs.GetBinError( ele_SFs.GetXaxis().FindBin( eta ), ele_SFs.GetYaxis().FindBin( pt ) )
+                LepWeightID = muonID_SFs.GetBinContent( muonID_SFs.GetXaxis().FindBin( pt ), muonID_SFs.GetYaxis().FindBin( eta ) )
+                LepWeightIDUnc =  muonID_SFs.GetBinError( muonID_SFs.GetXaxis().FindBin( pt ), muonID_SFs.GetYaxis().FindBin( eta ) )
                 if overflow:
-                    LepWeightUnc *=2
-                evWeight *= LepWeight
+                    LepWeightIDUnc *=2
+                #print 'evWeight before multiplying with LepWeightID: %f' % (evWeight) 
+                evWeight *= LepWeightID
+                #print 'evWeight after multiplying with LepWeightID: %f' % (evWeight) 
 
-        # Get the "footprint" of the lepton. That is, all of the candidates making up the lepton.
+
+
+                # Muon Isolation scale factors
+                overflow = False
+                if pt >=120:
+                    pt=119.9
+                    overflow =True
+                LepWeightIso = muonIso_SFs.GetBinContent( muonIso_SFs.GetXaxis().FindBin( pt ), muonIso_SFs.GetYaxis().FindBin( eta ) )
+                LepWeightIsoUnc =  muonIso_SFs.GetBinError( muonIso_SFs.GetXaxis().FindBin( pt ), muonIso_SFs.GetYaxis().FindBin( eta ) )
+                if overflow:
+                    LepWeightIsoUnc *=2
+                #print 'evWeight before multiplying with LepWeightIso: %f' % (evWeight) 
+                evWeight *= LepWeightIso
+                #print 'evWeight after multiplying with LepWeightIso: %f' % (evWeight) 
+
+                # Muon trigger scale factors
+                overflow = False
+                if pt >=1200:
+                    pt=1119.9
+                    overflow =True
+                LepWeightTrig = muonTrig_SFs.GetBinContent( muonTrig_SFs.GetXaxis().FindBin( pt ), muonTrig_SFs.GetYaxis().FindBin( eta ) )
+                LepWeightTrigUnc =  muonTrig_SFs.GetBinError( muonTrig_SFs.GetXaxis().FindBin( pt ), muonTrig_SFs.GetYaxis().FindBin( eta ) )
+                if overflow:
+                    LepWeightTrigUnc *=2
+                #print 'evWeight before multiplying with LepWeightTrig: %f' % (evWeight) 
+                evWeight *= LepWeightTrig
+                #print 'evWeight after multiplying with LepWeightTrig: %f' % (evWeight) 
+
+        
+        else:
+            #print 'Event kicked because there are no good muons.'
+            return
 
         # now get a list of the PF candidates used to build this lepton, so to exclude them
         footprint = set()
@@ -945,6 +891,7 @@ def b2gdas_fwlite(argv):
         # Fill some plots related to the jets
         h_ptAK4.Fill( theLepJet.Perp(), evWeight )
         h_etaAK4.Fill( theLepJet.Eta(), evWeight )
+        h_phiAK4.Fill( theLepJet.Phi(), evWeight )
         h_yAK4.Fill( theLepJet.Rapidity(), evWeight )
         h_mAK4.Fill( theLepJet.M(), evWeight )
         h_BDiscAK4.Fill( theLepJetBDisc, evWeight )
@@ -1064,21 +1011,14 @@ def b2gdas_fwlite(argv):
             if jet.pt() < options.minAK8Pt:
                 continue
 
-            #mAK8Softdrop = jet.userFloat('ak8PFJetsCHSSoftDropMass')
             mAK8Softdrop = jet.userFloat('ak8PFJetsPuppiSoftDropMass')
-            #mAK8Pruned = jet.userFloat('ak8PFJetsCHSValueMap:ak8PFJetsCHSPrunedMass') #No longer stored in AK8 collection for Puppi jets
-            #mAK8Filtered = jet.userFloat('ak8PFJetsCHSFilteredMass')
-            #mAK8Trimmed = jet.userFloat('ak8PFJetsCHSTrimmedMass')
-
 
             h_ptAK8.Fill( jet.pt(), evWeight )
             h_etaAK8.Fill( jet.eta(), evWeight )
+            h_phiAK8.Fill( jet.phi(), evWeight )
             h_yAK8.Fill( jet.rapidity(), evWeight )
             h_mAK8.Fill( jet.mass(), evWeight )
             h_msoftdropAK8.Fill( mAK8Softdrop, evWeight )
-            #h_mprunedAK8.Fill( mAK8Pruned, evWeight ) #No longer stored in AK8 collection for Puppi jets
-            #h_mfilteredAK8.Fill( mAK8Filtered, evWeight )
-            #h_mtrimmedAK8.Fill( mAK8Trimmed, evWeight )
 
 
 
@@ -1111,8 +1051,7 @@ def b2gdas_fwlite(argv):
             else:
                 h_tau32AK8.Fill( -1.0, evWeight )
 
-            # Get the subjets from the modified mass drop algorithm
-            # aka softdrop with beta=0.
+            # Get the subjets 
             # The heaviest should correspond to the W and the lightest
             # should correspond to the b. 
             subjets = ak8JetsGood[candToPlot].subjets('SoftDropPuppi')
@@ -1127,13 +1066,30 @@ def b2gdas_fwlite(argv):
                     subjetW = subjets[1]
             else:
                 return
+            
+            # calculate minimum pairwise mass of subjets
+            minpwmass = 999999
+            pwmass = 99999
+            for idx_heavy in range(len(subjets)):
+                for idx_light in range(len(subjets)):
+                    if idx_heavy <= idx_light: continue
+                    subjet_heavy_P4 = ROOT.TLorentzVector( subjets[idx_heavy].px(), subjets[idx_heavy].py(), subjets[idx_heavy].pz(), subjets[idx_heavy].energy() )
+                    subjet_light_P4 = ROOT.TLorentzVector( subjets[idx_light].px(), subjets[idx_light].py(), subjets[idx_light].pz(), subjets[idx_light].energy() )
+                    pwmass = (subjet_heavy_P4 + subjet_light_P4).M()
+                if pwmass < minpwmass:
+                    minpwmass = pwmass
+
+            h_minmassAK8.Fill( minpwmass , evWeight )
+            h_nsjAK8.Fill( len(subjets), evWeight )
 
             SemiLeptWeight      [0] = evWeight
             PUWeight            [0] = puWeight
-            LeptonIDWeight      [0] = LepWeight
-            LeptonIDWeightUnc   [0] = LepWeightUnc
-            MuonTrkWeight       [0] = MuTrkWeight
-            MuonTrkWeightUnc    [0] = MuTrkWeightUnc
+            LeptonIDWeight      [0] = LepWeightID
+            LeptonIDWeightUnc   [0] = LepWeightIDUnc
+            LeptonIsoWeight     [0] = LepWeightIso
+            LeptonIsoWeightUnc  [0] = LepWeightIsoUnc
+            LeptonTrigWeight    [0] = LepWeightTrig
+            LeptonTrigWeightUnc [0] = LepWeightTrigUnc
             GenWeight           [0] = genWeight
             FatJetPt            [0] = ak8JetsGoodP4[candToPlot].Perp()
             FatJetEta           [0] = ak8JetsGoodP4[candToPlot].Eta()
@@ -1181,7 +1137,7 @@ def b2gdas_fwlite(argv):
             SemiLeptEventNum    [0] = event.object().id().event()
 
             TreeSemiLept.Fill()
-            print 'Filled Tree!!'
+            #print 'Filled Tree!!'
 
 
     #########################################

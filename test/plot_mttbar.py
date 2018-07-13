@@ -40,9 +40,14 @@ def plot_mttbar(argv) :
     from leptonic_nu_z_component import solve_nu_tmass, solve_nu
 
     fout= ROOT.TFile(options.file_out, "RECREATE")
-    h_mttbar = ROOT.TH1F("h_mttbar", ";m_{t#bar{t}} (GeV);Number", 100, 0, 5000)
-    h_mtopHad = ROOT.TH1F("h_mtopHad", ";m_{jet} (GeV);Number", 100, 0, 400)
-    h_mtopHadGroomed = ROOT.TH1F("h_mtopHadGroomed", ";Groomed m_{jet} (GeV);Number", 100, 0, 400)
+
+    h_muonpt  = ROOT.TH1F("h_muonpt", ";leading p_{T}^{#mu} (GeV);Events", 50, 0, 1000)
+    h_muonphi = ROOT.TH1F("h_muonphi", ";leading #phi_{#mu};Events", 20, 0, 3.15)
+    h_muoneta = ROOT.TH1F("h_muoneta", ";leading #eta_{#mu};Events", 20, -2.5, 2.5)
+    h_mttbar  = ROOT.TH1F("h_mttbar", ";m_{t#bar{t}} (GeV);Events", 100, 0, 5000)
+    h_mtopHad = ROOT.TH1F("h_mtopHad", ";m_{jet} (GeV);Events", 100, 0, 400)
+    h_mtopHadGroomed = ROOT.TH1F("h_mtopHadGroomed", ";Groomed m_{jet} (GeV);Events", 100, 0, 400)
+
     fin = ROOT.TFile.Open(options.file_in)
 
 
@@ -194,13 +199,18 @@ def plot_mttbar(argv) :
             if ientry < 0:
                 break
 
-            # Muons only for now
+            # Muons only
             if LeptonType[0] != 13 :
                 continue
 
-            # Muon triggers only for now (use HLT_Mu45_eta2p1 with index 1)
-            if SemiLeptTrig[1] != 1  :
+            # Muon triggers
+            if SemiLeptTrig[0] != 1  :
                 continue
+            
+            # Fill basic muon quantities
+            h_muonpt.Fill(LeptonPt[0],SemiLeptWeight[0])
+            h_muoneta.Fill(LeptonEta[0],SemiLeptWeight[0])
+            h_muonphi.Fill(LeptonPhi[0],SemiLeptWeight[0])
 
 
             hadTopCandP4 = ROOT.TLorentzVector()
