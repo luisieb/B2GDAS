@@ -11,6 +11,7 @@ outfile.close()
 sys.argv.append('--input')
 sys.argv.append('filesToProcess.txt')
 sys.argv.append('--isCrabRun')
+sys.argv.append('--isData')
 sys.argv.append('--trigProcMETFilters')
 sys.argv.append('RECO')
 

@@ -13,7 +13,7 @@ config.JobType.psetName = 'PSet.py'
 config.Data.inputDataset = '/WW_TuneCP5_13TeV-pythia8/RunIIFall17MiniAOD-94X_mc2017_realistic_v10-v1/MINIAODSIM'
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'FileBased'
-config.Data.unitsPerJob = 10
+config.Data.unitsPerJob = 20
 
 config.Site.storageSite = 'T2_DE_DESY'
 

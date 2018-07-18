@@ -270,7 +270,6 @@ def b2gdas_fwlite(argv):
         LeptonIsoWeightUnc    = bookFloatBranch('LeptonIsoWeightUnc', 0.)
         LeptonTrigWeight      = bookFloatBranch('LeptonTrigWeight', 0.)
         LeptonTrigWeightUnc   = bookFloatBranch('LeptonTrigWeightUnc', 0.)
-        LeptonIso             = bookFloatBranch('LeptonIso', -1.)
         LeptonPhi             = bookFloatBranch('LeptonPhi', -1.)
         LeptonPt              = bookFloatBranch('LeptonPt', -1.)
         LeptonPtRel           = bookFloatBranch('LeptonPtRel', -1.)
