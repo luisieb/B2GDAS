@@ -1,9 +1,9 @@
-#! /usr/bin/env python
+ #! /usr/bin/env python
 
 import ROOT, copy, sys, logging
 from array import array
 from DataFormats.FWLite import Events, Handle
-# Use the VID framework for the electron ID. Tight ID without the PF isolation cut. 
+# Use the VID framework for the electron ID. Tight ID without the PF isolation cut.
 from RecoEgamma.ElectronIdentification.VIDElectronSelector import VIDElectronSelector
 from RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff import cutBasedElectronID_Spring15_25ns_V1_standalone_tight
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_nonTrig_V1_cff import mvaEleID_Spring15_25ns_nonTrig_V1_wp80
@@ -160,12 +160,12 @@ def getInputFiles(options):
 
 
 def b2gdas_fwlite(argv):
-    ## _____________      __.____    .__  __             _________ __          _____  _____ 
+    ## _____________      __.____    .__  __             _________ __          _____  _____
     ## \_   _____/  \    /  \    |   |__|/  |_  ____    /   _____//  |_ __ ___/ ____\/ ____\
-    ##  |    __) \   \/\/   /    |   |  \   __\/ __ \   \_____  \\   __\  |  \   __\\   __\ 
-    ##  |     \   \        /|    |___|  ||  | \  ___/   /        \|  | |  |  /|  |   |  |   
-    ##  \___  /    \__/\  / |_______ \__||__|  \___  > /_______  /|__| |____/ |__|   |__|   
-    ##      \/          \/          \/             \/          \/                           
+    ##  |    __) \   \/\/   /    |   |  \   __\/ __ \   \_____  \\   __\  |  \   __\\   __\
+    ##  |     \   \        /|    |___|  ||  | \  ___/   /        \|  | |  |  /|  |   |  |
+    ##  \___  /    \__/\  / |_______ \__||__|  \___  > /_______  /|__| |____/ |__|   |__|
+    ##      \/          \/          \/             \/          \/
 
     options = getUserOptions(argv)
     ROOT.gROOT.Macro("rootlogon.C")
@@ -190,7 +190,7 @@ def b2gdas_fwlite(argv):
 
 
     trigsToRun = [
-        "HLT_IsoMu22_",
+        "HLT_IsoMu24_",
         "HLT_Mu45_eta2p1",
         "HLT_Mu50_",
         "HLT_Mu40_eta2p1_PFJet200_PFJet50",
@@ -199,11 +199,11 @@ def b2gdas_fwlite(argv):
         "HLT_Ele105_CaloIdVT_GsfTrkIdT",
         "HLT_Ele115_CaloIdVT_GsfTrkIdT"
         ]
-    
-    ##   ___ ___ .__          __                                             
+
+    ##   ___ ___ .__          __
     ##  /   |   \|__| _______/  |_  ____   ________________    _____   ______
     ## /    ~    \  |/  ___/\   __\/  _ \ / ___\_  __ \__  \  /     \ /  ___/
-    ## \    Y    /  |\___ \  |  | (  <_> ) /_/  >  | \// __ \|  Y Y  \\___ \ 
+    ## \    Y    /  |\___ \  |  | (  <_> ) /_/  >  | \// __ \|  Y Y  \\___ \
     ##  \___|_  /|__/____  > |__|  \____/\___  /|__|  (____  /__|_|  /____  >
     ##        \/         \/             /_____/            \/      \/     \/
 
@@ -233,11 +233,9 @@ def b2gdas_fwlite(argv):
         # Event weights
         GenWeight             = bookFloatBranch('GenWeight', 0.)
         PUWeight              = bookFloatBranch('PUWeight', 0.)
-        MuonTrkWeight         = bookFloatBranch('MuonTrkWeight', 0.)
-        MuonTrkWeightUnc      = bookFloatBranch('MuonTrkWeightUnc', 0.)
         # Fat jet properties
         FatJetBDisc           = bookFloatBranch('FatJetBDisc', -1.)
-        FatJetDeltaPhiLep     = bookFloatBranch('FatJetDeltaPhiLep', -1.) 
+        FatJetDeltaPhiLep     = bookFloatBranch('FatJetDeltaPhiLep', -1.)
         FatJetEnergy          = bookFloatBranch('FatJetEnergy', -1.)
         FatJetEta             = bookFloatBranch('FatJetEta', -1.)
         FatJetJECDnSys        = bookFloatBranch('FatJetJECDnSys', -1.)
@@ -288,46 +286,14 @@ def b2gdas_fwlite(argv):
         SemiLeptLumiNum       = bookIntBranch('SemiLeptLumiNum', -1)
         SemiLeptRunNum        = bookIntBranch('SemiLeptRunNum', -1)
 
-    # and also make a few 1-d histograms
-    h_mttbar = ROOT.TH1F("h_mttbar", ";m_{t#bar{t}} (GeV)", 200, 0, 6000)
-    h_mttbar_true = ROOT.TH1F("h_mttbar_true", "True m_{t#bar{t}};m_{t#bar{t}} (GeV)", 200, 0, 6000)
-
-    h_ptLep = ROOT.TH1F("h_ptLep", "Lepton p_{T};p_{T} (GeV)", 100, 0, 1000)
-    h_etaLep = ROOT.TH1F("h_etaLep", "Lepton #eta;#eta", 120, -6, 6 )
-    h_met = ROOT.TH1F("h_met", "Missing p_{T};p_{T} (GeV)", 100, 0, 1000)
-    h_ptRel = ROOT.TH1F("h_ptRel", "p_{T}^{REL};p_{T}^{REL} (GeV)", 100, 0, 100)
-    h_dRMin = ROOT.TH1F("h_dRMin", "#Delta R_{MIN};#Delta R_{MIN}", 100, 0, 5.0)
-    h_2DCut = ROOT.TH2F("h_2DCut", "2D Cut;#Delta R;p_{T}^{REL}", 20, 0, 5.0, 20, 0, 100 )
-
-    h_ptAK4 = ROOT.TH1F("h_ptAK4", "AK4 Jet p_{T};p_{T} (GeV)", 300, 0, 3000)
-    h_etaAK4 = ROOT.TH1F("h_etaAK4", "AK4 Jet #eta;#eta", 120, -6, 6)
-    h_yAK4 = ROOT.TH1F("h_yAK4", "AK4 Jet Rapidity;y", 120, -6, 6)
-    h_phiAK4 = ROOT.TH1F("h_phiAK4", "AK4 Jet #phi;#phi (radians)",100,-ROOT.Math.Pi(),ROOT.Math.Pi())
-    h_mAK4 = ROOT.TH1F("h_mAK4", "AK4 Jet Mass;Mass (GeV)", 100, 0, 1000)
-    h_BDiscAK4 = ROOT.TH1F("h_BDiscAK4", "AK4 b discriminator;b discriminator", 100, 0, 1.0)
-
-    h_ptAK8 = ROOT.TH1F("h_ptAK8", "AK8 Jet p_{T};p_{T} (GeV)", 300, 0, 3000)
-    h_etaAK8 = ROOT.TH1F("h_etaAK8", "AK8 Jet #eta;#eta", 120, -6, 6)
-    h_yAK8 = ROOT.TH1F("h_yAK8", "AK8 Jet Rapidity;y", 120, -6, 6)
-    h_phiAK8 = ROOT.TH1F("h_phiAK8", "AK8 Jet #phi;#phi (radians)",100,-ROOT.Math.Pi(),ROOT.Math.Pi())
-    h_mAK8 = ROOT.TH1F("h_mAK8", "AK8 Jet Mass;Mass (GeV)", 100, 0, 1000)
-    h_msoftdropAK8 = ROOT.TH1F("h_msoftdropAK8", "AK8 Softdrop Jet Mass;Mass (GeV)", 100, 0, 1000)
-    h_mprunedAK8 = ROOT.TH1F("h_mprunedAK8", "AK8 Pruned Jet Mass;Mass (GeV)", 100, 0, 1000)
-    #h_mfilteredAK8 = ROOT.TH1F("h_mfilteredAK8", "AK8 Filtered Jet Mass;Mass (GeV)", 100, 0, 1000)
-    #h_mtrimmedAK8 = ROOT.TH1F("h_mtrimmedAK8", "AK8 Trimmed Jet Mass;Mass (GeV)", 100, 0, 1000)
-    h_minmassAK8 = ROOT.TH1F("h_minmassAK8", "AK8 CMS Top Tagger Min Mass Paring;m_{min} (GeV)", 100, 0, 1000)
-    h_nsjAK8 = ROOT.TH1F("h_nsjAK8", "AK8 CMS Top Tagger N_{subjets};N_{subjets}", 5, 0, 5)
-    h_tau21AK8 = ROOT.TH1F("h_tau21AK8", "AK8 Jet #tau_{2} / #tau_{1};Mass#tau_{21}", 100, 0, 1.0)
-    h_tau32AK8 = ROOT.TH1F("h_tau32AK8", "AK8 Jet #tau_{3} / #tau_{2};Mass#tau_{32}", 100, 0, 1.0)
 
 
-
-    ##      ____.       __    _________                                     __  .__                      
+    ##      ____.       __    _________                                     __  .__
     ##     |    | _____/  |_  \_   ___ \  __________________   ____   _____/  |_|__| ____   ____   ______
     ##     |    |/ __ \   __\ /    \  \/ /  _ \_  __ \_  __ \_/ __ \_/ ___\   __\  |/  _ \ /    \ /  ___/
-    ## /\__|    \  ___/|  |   \     \___(  <_> )  | \/|  | \/\  ___/\  \___|  | |  (  <_> )   |  \\___ \ 
+    ## /\__|    \  ___/|  |   \     \___(  <_> )  | \/|  | \/\  ___/\  \___|  | |  (  <_> )   |  \\___ \
     ## \________|\___  >__|    \______  /\____/|__|   |__|    \___  >\___  >__| |__|\____/|___|  /____  >
-    ##               \/               \/                          \/     \/                    \/     \/ 
+    ##               \/               \/                          \/     \/                    \/     \/
     ROOT.gSystem.Load('libCondFormatsJetMETObjects')
     if options.isData:
         jecAK4 = createJEC('JECs/Spring16_25nsV6_DATA', ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual'], 'AK4PFchs')
@@ -345,12 +311,12 @@ def b2gdas_fwlite(argv):
     selectElectron._VIDSelectorBase__instance.ignoreCut('GsfEleEffAreaPFIsoCut_0')
 
 
-    ## __________.__.__                        __________                     .__       .__     __  .__                
-    ## \______   \__|  |   ____  __ ________   \______   \ ______  _  __ ____ |__| ____ |  |___/  |_|__| ____    ____  
-    ##  |     ___/  |  | _/ __ \|  |  \____ \   |       _// __ \ \/ \/ // __ \|  |/ ___\|  |  \   __\  |/    \  / ___\ 
+    ## __________.__.__                        __________                     .__       .__     __  .__
+    ## \______   \__|  |   ____  __ ________   \______   \ ______  _  __ ____ |__| ____ |  |___/  |_|__| ____    ____
+    ##  |     ___/  |  | _/ __ \|  |  \____ \   |       _// __ \ \/ \/ // __ \|  |/ ___\|  |  \   __\  |/    \  / ___\
     ##  |    |   |  |  |_\  ___/|  |  /  |_> >  |    |   \  ___/\     /\  ___/|  / /_/  >   Y  \  | |  |   |  \/ /_/  >
-    ##  |____|   |__|____/\___  >____/|   __/   |____|_  /\___  >\/\_/  \___  >__\___  /|___|  /__| |__|___|  /\___  / 
-    ##                        \/      |__|             \/     \/            \/  /_____/      \/             \//_____/  
+    ##  |____|   |__|____/\___  >____/|   __/   |____|_  /\___  >\/\_/  \___  >__\___  /|___|  /__| |__|___|  /\___  /
+    ##                        \/      |__|             \/     \/            \/  /_____/      \/             \//_____/
     # Obtained on lxplus using this recipe:
     # https://twiki.cern.ch/twiki/bin/view/CMS/PileupJSONFileforData#2015_Pileup_JSON_Files
     # cmsrel (bla bla bla)
@@ -361,38 +327,35 @@ def b2gdas_fwlite(argv):
     #       --numPileupBins 50 MyDataPileupHistogram.root
     #
     # Then we compute our pileup distribution in MC ourselves, and divide data/MC, with these commands:
-    # python makepu_fwlite.py --files inputfiles/ttjets.txt --maxevents 100000 
+    # python makepu_fwlite.py --files inputfiles/ttjets.txt --maxevents 100000
     # python makepuhist.py --file_data MyDataPileupHistogram.root --file_mc pumc.root --file_out purw.root
     #
-    
+
     if not options.isData and not options.disablePileup:
         pileupReweightFile = ROOT.TFile('purw.root', 'READ')
         purw = pileupReweightFile.Get('pileup')
 
 
     # Lepton efficiencies
-    if not options.isData: 
+    if not options.isData:
         electonSFFile = ROOT.TFile('egammaEffi.txt_SF2D.root', 'READ')
         ele_SFs = electonSFFile.Get('EGamma_SF2D')
 
         muonSFFile = ROOT.TFile('MuonID_Z_RunBCD_prompt80X_7p65.root', 'READ')
         muon_SFs = muonSFFile.Get('MC_NUM_TightIDandIPCut_DEN_genTracks_PAR_pt_spliteta_bin1/pt_abseta_ratio')
 
-        muonTrkSFFile = ROOT.TFile('general_tracks_and_early_general_tracks_corr_ratio.root', 'READ')
-        muonTrk_SFs = muonTrkSFFile.Get('mutrksfptg10')
 
-        
-    ## ___________                    __    .____                         
-    ## \_   _____/__  __ ____   _____/  |_  |    |    ____   ____ ______  
-    ##  |    __)_\  \/ // __ \ /    \   __\ |    |   /  _ \ /  _ \\____ \ 
+    ## ___________                    __    .____
+    ## \_   _____/__  __ ____   _____/  |_  |    |    ____   ____ ______
+    ##  |    __)_\  \/ // __ \ /    \   __\ |    |   /  _ \ /  _ \\____ \
     ##  |        \\   /\  ___/|   |  \  |   |    |__(  <_> |  <_> )  |_> >
-    ## /_______  / \_/  \___  >___|  /__|   |_______ \____/ \____/|   __/ 
-    ##         \/           \/     \/               \/            |__|    
+    ## /_______  / \_/  \___  >___|  /__|   |_______ \____/ \____/|   __/
+    ##         \/           \/     \/               \/            |__|
 
 
     # IMPORTANT : Run one FWLite instance per file. Otherwise,
     # FWLite aggregates ALL of the information immediately, which
-    # can take a long time to parse. 
+    # can take a long time to parse.
 
     def processEvent(iev, event):
         evWeight = 1.0
@@ -400,13 +363,11 @@ def b2gdas_fwlite(argv):
         genWeight = 1.0
         LepWeight = 1.0
         LepWeightUnc = 0.0
-        MuTrkWeight = 1.0
-        MuTrkWeightUnc = 0.0
 
-        ##   ___ ___ .____  ___________                    .___ ___________.__.__   __                       
+        ##   ___ ___ .____  ___________                    .___ ___________.__.__   __
         ##  /   |   \|    | \__    ___/ _____    ____    __| _/ \_   _____/|__|  |_/  |_  ___________  ______
         ## /    ~    \    |   |    |    \__  \  /    \  / __ |   |    __)  |  |  |\   __\/ __ \_  __ \/  ___/
-        ## \    Y    /    |___|    |     / __ \|   |  \/ /_/ |   |     \   |  |  |_|  | \  ___/|  | \/\___ \ 
+        ## \    Y    /    |___|    |     / __ \|   |  \/ /_/ |   |     \   |  |  |_|  | \  ___/|  | \/\___ \
         ##  \___|_  /|_______ \____|    (____  /___|  /\____ |   \___  /   |__|____/__|  \___  >__|  /____  >
         ##        \/         \/              \/     \/      \/       \/                      \/           \/
         if not options.disableTree:
@@ -459,7 +420,7 @@ def b2gdas_fwlite(argv):
             if names2.triggerName(itrig) == "Flag_eeBadScFilter" and not metfiltBits.product().accept(itrig):
                 passFilters = False
             if options.verbose:
-                print "MET Filter ", names2.triggerName(itrig),  ": ", ("PASS" if metfiltBits.product().accept(itrig) else "fail (or not run)") 
+                print "MET Filter ", names2.triggerName(itrig),  ": ", ("PASS" if metfiltBits.product().accept(itrig) else "fail (or not run)")
 
         if not passFilters:
             return
@@ -467,13 +428,13 @@ def b2gdas_fwlite(argv):
         if not passTrig:
             return
 
-        ##   ________                __________.__          __          
+        ##   ________                __________.__          __
         ##  /  _____/  ____   ____   \______   \  |   _____/  |_  ______
         ## /   \  ____/ __ \ /    \   |     ___/  |  /  _ \   __\/  ___/
-        ## \    \_\  \  ___/|   |  \  |    |   |  |_(  <_> )  |  \___ \ 
+        ## \    \_\  \  ___/|   |  \  |    |   |  |_(  <_> )  |  \___ \
         ##  \______  /\___  >___|  /  |____|   |____/\____/|__| /____  >
         ##         \/     \/     \/                                  \/
-        if not options.isData: 
+        if not options.isData:
             haveGenSolution = False
             isGenPresent = event.getByLabel( genLabel, gens )
             if isGenPresent:
@@ -489,7 +450,6 @@ def b2gdas_fwlite(argv):
 
                 if topQuark != None and antitopQuark != None:
                     ttbarCandP4 = topQuark.p4() + antitopQuark.p4()
-                    h_mttbar_true.Fill( ttbarCandP4.mass() )
                     haveGenSolution = True
                 else:
                     if options.verbose:
@@ -498,12 +458,12 @@ def b2gdas_fwlite(argv):
             genWeight = genInfo.product().weight()
             evWeight *= genWeight
 
-        ## ____   ____             __                    _________      .__                 __  .__               
-        ## \   \ /   /____________/  |_  ____ ___  ___  /   _____/ ____ |  |   ____   _____/  |_|__| ____   ____  
-        ##  \   Y   // __ \_  __ \   __\/ __ \\  \/  /  \_____  \_/ __ \|  | _/ __ \_/ ___\   __\  |/  _ \ /    \ 
+        ## ____   ____             __                    _________      .__                 __  .__
+        ## \   \ /   /____________/  |_  ____ ___  ___  /   _____/ ____ |  |   ____   _____/  |_|__| ____   ____
+        ##  \   Y   // __ \_  __ \   __\/ __ \\  \/  /  \_____  \_/ __ \|  | _/ __ \_/ ___\   __\  |/  _ \ /    \
         ##   \     /\  ___/|  | \/|  | \  ___/ >    <   /        \  ___/|  |_\  ___/\  \___|  | |  (  <_> )   |  \
         ##    \___/  \___  >__|   |__|  \___  >__/\_ \ /_______  /\___  >____/\___  >\___  >__| |__|\____/|___|  /
-        ##               \/                 \/      \/         \/     \/          \/     \/                    \/ 
+        ##               \/                 \/      \/         \/     \/          \/     \/                    \/
 
 
         event.getByLabel(vertexLabel, vertices)
@@ -518,12 +478,12 @@ def b2gdas_fwlite(argv):
             if options.verbose:
                 print "PV at x,y,z = %+5.3f, %+5.3f, %+6.3f (ndof %.1f)" % (PV.x(), PV.y(), PV.z(), PV.ndof())
 
-        ##   __________.__.__                        __________                     .__       .__     __  .__                
-        ##   \______   \__|  |   ____  __ ________   \______   \ ______  _  __ ____ |__| ____ |  |___/  |_|__| ____    ____  
-        ##    |     ___/  |  | _/ __ \|  |  \____ \   |       _// __ \ \/ \/ // __ \|  |/ ___\|  |  \   __\  |/    \  / ___\ 
+        ##   __________.__.__                        __________                     .__       .__     __  .__
+        ##   \______   \__|  |   ____  __ ________   \______   \ ______  _  __ ____ |__| ____ |  |___/  |_|__| ____    ____
+        ##    |     ___/  |  | _/ __ \|  |  \____ \   |       _// __ \ \/ \/ // __ \|  |/ ___\|  |  \   __\  |/    \  / ___\
         ##    |    |   |  |  |_\  ___/|  |  /  |_> >  |    |   \  ___/\     /\  ___/|  / /_/  >   Y  \  | |  |   |  \/ /_/  >
-        ##    |____|   |__|____/\___  >____/|   __/   |____|_  /\___  >\/\_/  \___  >__\___  /|___|  /__| |__|___|  /\___  / 
-        ##                          \/      |__|             \/     \/            \/  /_____/      \/             \//_____/  
+        ##    |____|   |__|____/\___  >____/|   __/   |____|_  /\___  >\/\_/  \___  >__\___  /|___|  /__| |__|___|  /\___  /
+        ##                          \/      |__|             \/     \/            \/  /_____/      \/             \//_____/
 
         if not options.isData:
             event.getByLabel(pileuplabel, pileups)
@@ -538,12 +498,12 @@ def b2gdas_fwlite(argv):
                 puWeight = purw.GetBinContent( purw.GetXaxis().FindBin( TrueNumInteractions ) )
                 evWeight *= puWeight
 
-        ## __________.__             ____   ____      .__                 
-        ## \______   \  |__   ____   \   \ /   /____  |  |  __ __   ____  
-        ##  |       _/  |  \ /  _ \   \   Y   /\__  \ |  | |  |  \_/ __ \ 
-        ##  |    |   \   Y  (  <_> )   \     /  / __ \|  |_|  |  /\  ___/ 
+        ## __________.__             ____   ____      .__
+        ## \______   \  |__   ____   \   \ /   /____  |  |  __ __   ____
+        ##  |       _/  |  \ /  _ \   \   Y   /\__  \ |  | |  |  \_/ __ \
+        ##  |    |   \   Y  (  <_> )   \     /  / __ \|  |_|  |  /\  ___/
         ##  |____|_  /___|  /\____/     \___/  (____  /____/____/  \___  >
-        ##         \/     \/                        \/                 \/ 
+        ##         \/     \/                        \/                 \/
         event.getByLabel(rhoLabel, rhos)
         # Rhos
         if len(rhos.product()) == 0:
@@ -556,12 +516,12 @@ def b2gdas_fwlite(argv):
 
 
 
-        ## .____                  __                    _________      .__                 __  .__               
-        ## |    |    ____ _______/  |_  ____   ____    /   _____/ ____ |  |   ____   _____/  |_|__| ____   ____  
-        ## |    |  _/ __ \\____ \   __\/  _ \ /    \   \_____  \_/ __ \|  | _/ __ \_/ ___\   __\  |/  _ \ /    \ 
+        ## .____                  __                    _________      .__                 __  .__
+        ## |    |    ____ _______/  |_  ____   ____    /   _____/ ____ |  |   ____   _____/  |_|__| ____   ____
+        ## |    |  _/ __ \\____ \   __\/  _ \ /    \   \_____  \_/ __ \|  | _/ __ \_/ ___\   __\  |/  _ \ /    \
         ## |    |__\  ___/|  |_> >  | (  <_> )   |  \  /        \  ___/|  |_\  ___/\  \___|  | |  (  <_> )   |  \
         ## |_______ \___  >   __/|__|  \____/|___|  / /_______  /\___  >____/\___  >\___  >__| |__|\____/|___|  /
-        ##         \/   \/|__|                    \/          \/     \/          \/     \/                    \/ 
+        ##         \/   \/|__|                    \/          \/     \/          \/     \/                    \/
 
 
 
@@ -628,12 +588,6 @@ def b2gdas_fwlite(argv):
                 LepWeightUnc = (LepWeightUnc**2 + (0.01*LepWeight)**2 + (0.005*LepWeight)**2)**0.5
                 evWeight *= LepWeight
 
-                # tracker efficiency sccale factors
-                eta = goodmuons[0].eta()
-                MuTrkWeight = muonTrk_SFs.GetBinContent( muonTrk_SFs.GetXaxis().FindBin( eta ))
-                MuTrkWeightUnc = muonTrk_SFs.GetBinError( muonTrk_SFs.GetXaxis().FindBin( eta ))
-                evWeight *= MuTrkWeight
-
         else:
             theLeptonCand = goodelectrons[0]
             theLepton = ROOT.TLorentzVector( goodelectrons[0].px(),
@@ -645,7 +599,7 @@ def b2gdas_fwlite(argv):
 
             # Get the electron ID scale factor for simulation
             if not options.isData:
-                pt = goodelectrons[0].pt() 
+                pt = goodelectrons[0].pt()
                 eta =  goodelectrons[0].superCluster().eta()
                 overflow = False
                 if pt >=200:
@@ -667,12 +621,12 @@ def b2gdas_fwlite(argv):
 
 
 
-        ##      ____.       __      _________      .__                 __  .__               
-        ##     |    | _____/  |_   /   _____/ ____ |  |   ____   _____/  |_|__| ____   ____  
-        ##     |    |/ __ \   __\  \_____  \_/ __ \|  | _/ __ \_/ ___\   __\  |/  _ \ /    \ 
+        ##      ____.       __      _________      .__                 __  .__
+        ##     |    | _____/  |_   /   _____/ ____ |  |   ____   _____/  |_|__| ____   ____
+        ##     |    |/ __ \   __\  \_____  \_/ __ \|  | _/ __ \_/ ___\   __\  |/  _ \ /    \
         ## /\__|    \  ___/|  |    /        \  ___/|  |_\  ___/\  \___|  | |  (  <_> )   |  \
         ## \________|\___  >__|   /_______  /\___  >____/\___  >\___  >__| |__|\____/|___|  /
-        ##               \/               \/     \/          \/     \/                    \/ 
+        ##               \/               \/     \/          \/     \/                    \/
 
         #
         #
@@ -689,7 +643,7 @@ def b2gdas_fwlite(argv):
         # This is because the PF leptons are actually counted in the
         # list of particles sent to the jet clustering.
         # Therefore, we need to loop over the jet constituents and
-        # remove the lepton. 
+        # remove the lepton.
 
         # use getByLabel, just like in cmsRun
         event.getByLabel (jetLabel, jets)          # For b-tagging
@@ -791,9 +745,9 @@ def b2gdas_fwlite(argv):
                     eta=4.999
                 if eta<=-5.0:
                     eta=-4.999
-                smear     = getJER( eta,  0) 
-                smearUp   = getJER( eta,  1) 
-                smearDn   = getJER( eta, -1) 
+                smear     = getJER( eta,  0)
+                smearUp   = getJER( eta,  1)
+                smearDn   = getJER( eta, -1)
                 recopt    = jetP4Raw.Perp() * newJEC
                 if jet.genJet() != None:
                     genpt     = jet.genJet().pt()
@@ -806,7 +760,7 @@ def b2gdas_fwlite(argv):
 
 
             jetP4 = jetP4Raw * newJEC * ptsmear
-                
+
             # Now perform jet kinematic cuts
             if jetP4.Perp() < options.minAK4Pt or abs(jetP4.Rapidity()) > options.maxAK4Rapidity:
                 continue
@@ -830,7 +784,7 @@ def b2gdas_fwlite(argv):
 
         ############################################
         # Require at least one leptonic-side jet, and 2d isolation cut
-        ############################################ 
+        ############################################
         if nearestJet == None:
             return
 
@@ -840,21 +794,7 @@ def b2gdas_fwlite(argv):
 
         theLepJet = nearestJetP4
         theLepJetBDisc = nearestJet.bDiscriminator( options.bdisc )
-
-        # Fill some plots related to the jets
-        h_ptAK4.Fill( theLepJet.Perp(), evWeight )
-        h_etaAK4.Fill( theLepJet.Eta(), evWeight )
-        h_yAK4.Fill( theLepJet.Rapidity(), evWeight )
-        h_mAK4.Fill( theLepJet.M(), evWeight )
-        h_BDiscAK4.Fill( theLepJetBDisc, evWeight )
-        # Fill some plots related to the lepton, the MET, and the 2-d cut
         ptRel = theLepJet.Perp( theLepton.Vect() )
-        h_ptLep.Fill(theLepton.Perp(), evWeight)
-        h_etaLep.Fill(theLepton.Eta(), evWeight)
-        h_met.Fill(met.pt(), evWeight)
-        h_ptRel.Fill( ptRel, evWeight )
-        h_dRMin.Fill( dRMin, evWeight )
-        h_2DCut.Fill( dRMin, ptRel, evWeight )
         pass2D = ptRel > 20.0 or dRMin > 0.4
         if options.verbose:
             print '2d cut : dRMin = {0:6.2f}, ptRel = {1:6.2f}, pass = {2:6d}'.format( dRMin, ptRel, pass2D )
@@ -904,9 +844,9 @@ def b2gdas_fwlite(argv):
                     eta=4.999
                 if eta<=-5.0:
                     eta=-4.999
-                smear     = getJER( eta,  0) 
-                smearUp   = getJER( eta,  1) 
-                smearDn   = getJER( eta, -1) 
+                smear     = getJER( eta,  0)
+                smearUp   = getJER( eta,  1)
+                smearDn   = getJER( eta, -1)
                 recopt    = jetP4Raw.Perp() * newJEC
                 if jet.genJet() != None:
                     genpt     = jet.genJet().pt()
@@ -924,19 +864,19 @@ def b2gdas_fwlite(argv):
                 continue
 
             # Only keep AK8 jets "away" from the lepton, so we do not need
-            # lepton-jet cleaning here. There's no double counting. 
+            # lepton-jet cleaning here. There's no double counting.
             dR = jetP4.DeltaR(theLepton )
             if dR > ROOT.TMath.Pi()/2.0:
                 ak8JetsGood.append(jet)
                 ak8JetsGoodP4.append( jetP4 )
                 ak8JetsGoodSysts.append( [corrUp, corrDn, ptsmearUp, ptsmearDn] )
 
-        ## ___________                     .__                
-        ## \__    ___/____     ____   ____ |__| ____    ____  
-        ##   |    |  \__  \   / ___\ / ___\|  |/    \  / ___\ 
+        ## ___________                     .__
+        ## \__    ___/____     ____   ____ |__| ____    ____
+        ##   |    |  \__  \   / ___\ / ___\|  |/    \  / ___\
         ##   |    |   / __ \_/ /_/  > /_/  >  |   |  \/ /_/  >
-        ##   |____|  (____  /\___  /\___  /|__|___|  /\___  / 
-        ##                \//_____//_____/         \//_____/  
+        ##   |____|  (____  /\___  /\___  /|__|___|  /\___  /
+        ##                \//_____//_____/         \//_____/
 
         ############################################
         # Investigate the b-tagging and t-tagging
@@ -956,26 +896,17 @@ def b2gdas_fwlite(argv):
             #mAK8Trimmed = jet.userFloat('ak8PFJetsCHSTrimmedMass')
 
 
-            h_ptAK8.Fill( jet.pt(), evWeight )
-            h_etaAK8.Fill( jet.eta(), evWeight )
-            h_yAK8.Fill( jet.rapidity(), evWeight )
-            h_mAK8.Fill( jet.mass(), evWeight )
-            h_msoftdropAK8.Fill( mAK8Softdrop, evWeight )
-            h_mprunedAK8.Fill( mAK8Pruned, evWeight )
-            #h_mfilteredAK8.Fill( mAK8Filtered, evWeight )
-            #h_mtrimmedAK8.Fill( mAK8Trimmed, evWeight )
-
 
 
             tJets.append( jet )
 
 
-        ## ___________.__.__  .__    ___________                      
-        ## \_   _____/|__|  | |  |   \__    ___/______   ____   ____  
-        ##  |    __)  |  |  | |  |     |    |  \_  __ \_/ __ \_/ __ \ 
-        ##  |     \   |  |  |_|  |__   |    |   |  | \/\  ___/\  ___/ 
+        ## ___________.__.__  .__    ___________
+        ## \_   _____/|__|  | |  |   \__    ___/______   ____   ____
+        ##  |    __)  |  |  | |  |     |    |  \_  __ \_/ __ \_/ __ \
+        ##  |     \   |  |  |_|  |__   |    |   |  | \/\  ___/\  ___/
         ##  \___  /   |__|____/____/   |____|   |__|    \___  >\___  >
-        ##      \/                                          \/     \/ 
+        ##      \/                                          \/     \/
         if not options.disableTree:
             candToPlot = 0
 
@@ -987,19 +918,13 @@ def b2gdas_fwlite(argv):
             tau3 = ak8JetsGood[candToPlot].userFloat('NjettinessAK8:tau3')
             if tau1 > 0.0001:
                 tau21 = tau2 / tau1
-                h_tau21AK8.Fill( tau21, evWeight )
-            else:
-                h_tau21AK8.Fill( -1.0, evWeight )
             if tau2 > 0.0001:
                 tau32 = tau3 / tau2
-                h_tau32AK8.Fill( tau32, evWeight )
-            else:
-                h_tau32AK8.Fill( -1.0, evWeight )
 
             # Get the subjets from the modified mass drop algorithm
             # aka softdrop with beta=0.
             # The heaviest should correspond to the W and the lightest
-            # should correspond to the b. 
+            # should correspond to the b.
             subjets = ak8JetsGood[candToPlot].subjets('SoftDrop')
             subjetW = None
             subjetB = None
@@ -1017,8 +942,6 @@ def b2gdas_fwlite(argv):
             PUWeight            [0] = puWeight
             LeptonIDWeight      [0] = LepWeight
             LeptonIDWeightUnc   [0] = LepWeightUnc
-            MuonTrkWeight       [0] = MuTrkWeight
-            MuonTrkWeightUnc    [0] = MuTrkWeightUnc
             GenWeight           [0] = genWeight
             FatJetPt            [0] = ak8JetsGoodP4[candToPlot].Perp()
             FatJetEta           [0] = ak8JetsGoodP4[candToPlot].Eta()
@@ -1043,14 +966,14 @@ def b2gdas_fwlite(argv):
                 FatJetSDsubjetBpt   [0] = subjetB.pt()
                 FatJetSDsubjetBmass [0] = subjetB.mass()
             LeptonType          [0] = leptonType
-            LeptonPt            [0] = theLepton.Perp()  
+            LeptonPt            [0] = theLepton.Perp()
             LeptonEta           [0] = theLepton.Eta()
             LeptonPhi           [0] = theLepton.Phi()
             LeptonEnergy        [0] = theLepton.E()
             LeptonPtRel         [0] = nearestJetP4.Perp(theLepton.Vect())
             LeptonDRMin         [0] = nearestJetP4.DeltaR(theLepton)
             SemiLepMETpt        [0] = met.pt()
-            SemiLepMETphi       [0] = met.phi()   
+            SemiLepMETphi       [0] = met.phi()
             SemiLepNvtx         [0] = NPV
             NearestAK4JetBDisc  [0] = nearestJet.bDiscriminator(options.bdisc)
             NearestAK4JetPt     [0] = nearestJetP4.Perp()
